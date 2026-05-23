@@ -1,7 +1,7 @@
 # Makefile for ThuThesis
 
 PACKAGE = thuthesis
-THESIS  = thuthesis-example
+THESIS  = main
 
 SOURCES = $(PACKAGE).ins $(PACKAGE).dtx
 CLSFILE = dtx-style.sty $(PACKAGE).cls

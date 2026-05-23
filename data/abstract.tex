@@ -1,39 +1,27 @@
-% !TEX root = ../thuthesis-example.tex
+% !TEX root = ../main.tex
 
 % 中英文摘要和关键字
 
 \begin{abstract}
-  论文的摘要是对论文研究内容和成果的高度概括。
-  摘要应对论文所研究的问题及其研究目的进行描述，对研究方法和过程进行简单介绍，对研究成果和所得结论进行概括。
-  摘要应具有独立性和自明性，其内容应包含与论文全文同等量的主要信息。
-  使读者即使不阅读全文，通过摘要就能了解论文的总体内容和主要成果。
+  大语言模型智能体能够根据用户目标进行任务规划、工具调用和环境交互，正在从单纯的文本生成系统发展为可以影响真实文件、系统状态和外部服务的自动化执行系统。与此同时，提示注入、环境误导、工具滥用、记忆污染和长周期任务发散等问题也使智能体安全风险从文本层面扩展到行动层面。现有输入检测、系统提示、模型微调和单点运行时检测方法能够缓解部分风险，但在动态环境下仍难以稳定判断智能体当前行动是否符合用户真实意图。
 
-  论文摘要的书写应力求精确、简明。
-  切忌写成对论文书写内容进行提要的形式，尤其要避免“第 1 章……；第 2 章……；……”这种或类似的陈述方式。
+  本文围绕大模型智能体运行过程中的意图决策不对齐问题展开研究，基于 OpenClaw 智能体框架和课题组 AgentWard 五层防御框架，重点设计并实现决策对齐层安全防御机制。本文提出由用户真实意图分析、意图对齐检测和动态结果处理组成的三模块框架：首先从当前用户输入和上下文中提取用户真实目标、约束条件和敏感对象；随后在工具调用前比较智能体当前决策与用户意图之间的一致性；最后根据对齐状态和风险程度采取放行、审查或阻断策略。本文还将该方法接入 OpenClaw 插件运行时，并围绕时序同步、规则过滤、状态缓存、模型调用稳定性和异常回退等问题进行工程实现。
 
-  关键词是为了文献标引工作、用以表示全文主要内容信息的单词或术语。
-  关键词不超过 5 个，每个关键词中间用分号分隔。
+  实验部分构建了模拟轨迹测试集和真实 OpenClaw 场景测试集，并在 Qwen3.5-Plus 和 MiniMax-M2.5 等模型上与 None、Rule-Only、Prompt-Policy、LLM-Only 等基线方法（baseline）进行比较。实验结果表明，本文方法能够有效降低当前测试集中的意图决策偏移攻击残留，尤其在工具动作表面正常但操作目标发生偏移的场景中优于单纯规则检测方法。同时，实验也显示该方法仍存在模型依赖、良性误报和 LLM 调用开销等局限，需要在后续工作中进一步优化。
 
-  % 关键词用“英文逗号”分隔，输出时会自动处理为正确的分隔符
   \thusetup{
-    keywords = {关键词 1, 关键词 2, 关键词 3, 关键词 4, 关键词 5},
+    keywords = {大模型智能体, 意图决策对齐, 运行时防御, 工具调用安全, OpenClaw},
   }
 \end{abstract}
 
 \begin{abstract*}
-  An abstract of a dissertation is a summary and extraction of research work and contributions.
-  Included in an abstract should be description of research topic and research objective, brief introduction to methodology and research process, and summary of conclusion and contributions of the research.
-  An abstract should be characterized by independence and clarity and carry identical information with the dissertation.
-  It should be such that the general idea and major contributions of the dissertation are conveyed without reading the dissertation.
+  Large Language Model agents can plan tasks, call external tools, and interact with dynamic environments according to user instructions. As a result, their security risks are no longer limited to unsafe textual responses, but may directly affect files, system states, and external services. Prompt injection, untrusted environmental instructions, tool misuse, memory poisoning, and long-horizon task drift may all cause an agent to take actions that are inconsistent with the user's real intention. Existing defenses, including input filtering, system prompts, model-side safety tuning, and single-step runtime judges, can mitigate part of these risks, but they still have difficulty in reliably checking whether an agent's current action is truly aligned with the user's authorized goal in a dynamic environment.
 
-  An abstract should be concise and to the point.
-  It is a misunderstanding to make an abstract an outline of the dissertation and words “the first chapter”, “the second chapter” and the like should be avoided in the abstract.
+  This thesis studies the intent-decision misalignment problem in LLM agents. Based on the OpenClaw agent framework and the AgentWard five-layer defense framework developed by our research group, this work focuses on the decision-alignment layer and proposes a three-module runtime defense mechanism. The first module analyzes the user's real intention from the current instruction and recent context. The second module checks whether the agent's current decision and pending tool call are aligned with that intention. The third module converts the alignment result into allow, review, or block decisions according to the risk level. The proposed mechanism is implemented as an OpenClaw plugin with additional engineering support for hook timing, rule-based gating, state caching, LLM-call stabilization, and conservative fallback.
 
-  Keywords are terms used in a dissertation for indexing, reflecting core information of the dissertation.
-  An abstract may contain a maximum of 5 keywords, with semi-colons used in between to separate one another.
+  Experiments are conducted on both simulated trajectories and real OpenClaw scenarios. The proposed method is compared with None, Rule-Only, Prompt-Policy, and LLM-Only baselines under Qwen3.5-Plus and MiniMax-M2.5. The results show that the proposed method can reduce attack residuals in the current benchmark, especially in cases where the surface tool action appears normal but the actual operation target has deviated from the user's intention. The experiments also reveal several limitations, including model dependency, false positives on benign cases, and additional latency and token cost introduced by LLM-based analysis.
 
-  % Use comma as separator when inputting
   \thusetup{
-    keywords* = {keyword 1, keyword 2, keyword 3, keyword 4, keyword 5},
+    keywords* = {LLM Agent, Intent-Decision Alignment, Runtime Defense, Tool-Call Safety, OpenClaw},
   }
 \end{abstract*}
