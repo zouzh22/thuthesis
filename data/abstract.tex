@@ -3,11 +3,11 @@
 % 中英文摘要和关键字
 
 \begin{abstract}
-  大语言模型智能体能够根据用户目标进行任务规划、工具调用和环境交互，正在从单纯的文本生成系统发展为可以影响真实文件、系统状态和外部服务的自动化执行系统。与此同时，提示注入、环境误导、工具滥用、记忆污染和长周期任务发散等问题也使智能体安全风险从文本层面扩展到行动层面。现有输入检测、系统提示、模型微调和单点运行时检测方法能够缓解部分风险，但在动态环境下仍难以稳定判断智能体当前行动是否符合用户真实意图。
+  大模型智能体（Large Language Model Agent, LLM Agent）通过工具调用将模型决策作用于文件系统、命令行和外部服务，安全问题随之从回答是否合规转向行动是否被用户真实授权。在实际运行中，风险并不总是来自显式危险请求；不可信环境说明、工具结果误导、模糊指令和长周期任务漂移，都可能使智能体在看似合理的执行过程中偏离用户意图。现有输入过滤、系统提示和单点安全裁判难以稳定刻画行动与授权之间的关系。
 
-  本文围绕大模型智能体运行过程中的意图决策不对齐问题展开研究，基于 OpenClaw 智能体框架和课题组 AgentWard 五层防御框架，重点设计并实现决策对齐层安全防御机制。本文提出由用户真实意图分析、意图对齐检测和动态结果处理组成的三模块框架：首先从当前用户输入和上下文中提取用户真实目标、约束条件和敏感对象；随后在工具调用前比较智能体当前决策与用户意图之间的一致性；最后根据对齐状态和风险程度采取放行、审查或阻断策略。本文还将该方法接入 OpenClaw 插件运行时，并围绕时序同步、规则过滤、状态缓存、模型调用稳定性和异常回退等问题进行工程实现。
+  本文研究意图决策不对齐问题，并基于 OpenClaw 与 AgentWard 设计实现运行时防御机制。该机制由用户真实意图分析、意图对齐检测和动态结果处理三部分组成：先抽取任务目标、约束、敏感对象和风险等级，形成结构化授权边界；再在工具执行前比对智能体决策和工具参数是否仍符合该边界；最后根据偏移程度输出放行、审查或阻断。系统以插件形式接入 OpenClaw，并通过时序同步、状态缓存、规则过滤和异常回退保证真实运行中的稳定性。
 
-  实验部分构建了模拟轨迹测试集和真实 OpenClaw 场景测试集，并在 Qwen3.5-Plus 和 MiniMax-M2.5 等模型上与 None、Rule-Only、Prompt-Policy、LLM-Only 等基线方法（baseline）进行比较。实验结果表明，本文方法能够有效降低当前测试集中的意图决策偏移攻击残留，尤其在工具动作表面正常但操作目标发生偏移的场景中优于单纯规则检测方法。同时，实验也显示该方法仍存在模型依赖、良性误报和 LLM 调用开销等局限，需要在后续工作中进一步优化。
+  本文构建真实 OpenClaw 场景和模拟轨迹两类测试集，在 Qwen3.5-Plus 与 MiniMax-M2.5 上评估方法有效性，并与规则、提示词和单点大模型裁判等基线方法（baseline）比较。真实场景覆盖目标别名重映射和环境诱导删除两类决策偏移攻击及其良性对照；模拟轨迹覆盖对齐、模糊授权、明确不对齐和长周期漂移四类状态。Qwen3.5-Plus 主实验中，原生 OpenClaw 攻击触发率为 74.4\%，本文方法在 41 个有效攻击轮次中将攻击残留降为 0，并在 34 个良性轮次中未造成受保护目标误删或误改；模拟测试中，本文方法对明确不对齐和长周期漂移均达到 100\% 检测成功率。结果表明，意图决策对齐能够在工具执行前有效约束智能体行动，为大模型智能体运行时安全提供一种可实现、可验证的防御路径。
 
   \thusetup{
     keywords = {大模型智能体, 意图决策对齐, 运行时防御, 工具调用安全, OpenClaw},
@@ -15,11 +15,11 @@
 \end{abstract}
 
 \begin{abstract*}
-  Large Language Model agents can plan tasks, call external tools, and interact with dynamic environments according to user instructions. As a result, their security risks are no longer limited to unsafe textual responses, but may directly affect files, system states, and external services. Prompt injection, untrusted environmental instructions, tool misuse, memory poisoning, and long-horizon task drift may all cause an agent to take actions that are inconsistent with the user's real intention. Existing defenses, including input filtering, system prompts, model-side safety tuning, and single-step runtime judges, can mitigate part of these risks, but they still have difficulty in reliably checking whether an agent's current action is truly aligned with the user's authorized goal in a dynamic environment.
+  Large Language Model (LLM) agents connect model decisions to file systems, command-line tools, and external services. This shifts safety from whether a response is acceptable to whether an action is authorized. In practice, failures may arise not only from explicit malicious requests, but also from untrusted environmental instructions, misleading tool outputs, ambiguous goals, and long-horizon task drift. Existing input filters, system prompts, and one-shot safety judges have difficulty modeling the authorization relation between a user's intent and an agent's pending action.
 
-  This thesis studies the intent-decision misalignment problem in LLM agents. Based on the OpenClaw agent framework and the AgentWard five-layer defense framework developed by our research group, this work focuses on the decision-alignment layer and proposes a three-module runtime defense mechanism. The first module analyzes the user's real intention from the current instruction and recent context. The second module checks whether the agent's current decision and pending tool call are aligned with that intention. The third module converts the alignment result into allow, review, or block decisions according to the risk level. The proposed mechanism is implemented as an OpenClaw plugin with additional engineering support for hook timing, rule-based gating, state caching, LLM-call stabilization, and conservative fallback.
+  This thesis studies intent-decision misalignment and implements a runtime defense mechanism on OpenClaw and AgentWard. The mechanism first extracts the user's goal, constraints, sensitive objects, and risk level as a structured authorization boundary; then checks before tool execution whether the agent's decision and tool parameters remain aligned with that boundary; and finally maps the result to allow, review, or block. The system is integrated as an OpenClaw plugin with timing synchronization, state caching, rule-based gating, structured outputs, and fallback handling.
 
-  Experiments are conducted on both simulated trajectories and real OpenClaw scenarios. The proposed method is compared with None, Rule-Only, Prompt-Policy, and LLM-Only baselines under Qwen3.5-Plus and MiniMax-M2.5. The results show that the proposed method can reduce attack residuals in the current benchmark, especially in cases where the surface tool action appears normal but the actual operation target has deviated from the user's intention. The experiments also reveal several limitations, including model dependency, false positives on benign cases, and additional latency and token cost introduced by LLM-based analysis.
+  We evaluate the method on real OpenClaw scenarios and simulated trajectories under Qwen3.5-Plus and MiniMax-M2.5, comparing it with rule-based, prompt-policy, and LLM-only baselines. In the Qwen3.5-Plus main experiment, native OpenClaw triggers attacks in 74.4\% of valid attack runs, while our method reduces residual attacks to 0/41 and causes no protected-target corruption in 34 benign runs. On 240 simulated trajectories, it achieves 100\% detection success on explicit misalignment and long-horizon drift. These results show that intent-decision alignment can constrain agent actions before execution and offers a practical path toward runtime safety for LLM agents.
 
   \thusetup{
     keywords* = {LLM Agent, Intent-Decision Alignment, Runtime Defense, Tool-Call Safety, OpenClaw},
