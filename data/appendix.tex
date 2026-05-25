@@ -1,13 +1,139 @@
 % !TEX root = ../main.tex
 
-\chapter{前期基准测试补充结果}
+\chapter{经典文献中文翻译（占位）}
 
-本附录后续将整理本文前期在 AgentDojo 与 CaMeL 等基准上的测试结果，用于说明本文研究问题的形成过程。该部分不作为正文实验的主要结论，只作为研究背景和实验探索的补充材料。
+本附录预留用于放置开题阶段完成的经典文献中文翻译。该部分将在后续根据学校要求补充原文信息、译文正文和附录 A 独立参考文献。本阶段暂不展开，以免与本文主体实验材料混合。
 
-\chapter{真实场景样例与模拟轨迹示例}
+\chapter{补充实验材料与运行说明}
 
-本附录后续将选取部分真实 OpenClaw 场景样例和模拟轨迹样例，展示 README 间接注入、目标别名重映射、模糊授权和长周期任务漂移等测试类型的构造方式。
+本附录整理本文研究过程中使用的补充实验材料。正文第 5 章已经给出主要实验设计和结果分析，本附录只保留对论文理解和结果复核有帮助的背景信息：首先介绍前期在 AgentDojo 和 CaMeL 上的基准测试；随后说明本文真实场景样例和模拟轨迹样例的构造方式；最后补充实验目录和运行方法。该部分不替代正文实验结论，而用于说明本文研究问题的形成过程和实验材料的组织方式。
 
-\chapter{实验配置与运行说明}
+\section{前期 benchmark 测试}
 
-本附录后续将整理 OpenClaw、AgentWard、基线方法（baseline）脚本、模型配置和实验结果文件组织方式，以提高实验的可复现性。
+在正式转向 OpenClaw 运行时安全插件之前，本文前期工作曾围绕现有智能体安全基准进行测试和复现。AgentDojo 提供了一个包含 Workspace、Banking、Slack 和 Travel 等场景的动态测试环境，用于评估大模型智能体在多轮任务和工具调用过程中的提示注入攻击风险\cite{debenedetti2024agentdojo}。与只观察单轮文本回复的测试不同，AgentDojo 同时考察攻击成功率（Attack Success Rate，ASR）和任务效用（Utility），因此更接近本文后续关注的运行时行动安全问题。
+
+前期小规模测试首先使用 AgentDojo 默认模型 \texttt{gpt-4o-2024-05-13} 在 Workspace 场景下进行验证。无攻击、无防御条件下，模型完成用户任务的 Utility 为 75\%；在 important\_instructions 攻击下，ASR 上升到 90\%，Utility 下降到 12.5\%；加入 \texttt{tool\_filter} 防御后，ASR 降至 2.5\%，Utility 回升到 65\%。这一结果说明，基础工具过滤方法能够明显缓解部分提示注入攻击，但攻击指令仍可能进入任务链路，且不同模型与不同 prompt 设置会显著影响可用性。
+
+随后，前期实验进一步在 Qwen-plus 上测试 AgentDojo 的四个场景，结果如表~\ref{tab:appendix-agentdojo-qwen} 所示。可以看到，在无防御条件下，important\_instructions 攻击在四个场景中均能诱发较高 ASR；加入 \texttt{tool\_filter} 后，Workspace、Banking 和 Slack 的 ASR 明显下降，但 Travel 场景仍保持较高攻击成功率，同时 Utility 在多个场景中下降明显。该结果使本文进一步意识到：静态工具过滤虽然成本较低，但很难稳定兼顾安全性和任务可用性。
+
+\begin{table}[htbp]
+  \centering
+  \caption{AgentDojo 上 Qwen-plus 前期测试结果}
+  \label{tab:appendix-agentdojo-qwen}
+  \small
+  \renewcommand{\arraystretch}{1.2}
+  \resizebox{\textwidth}{!}{%
+  \begin{tabular}{@{}lcccccc@{}}
+    \toprule
+    场景 & 无攻击 Utility & 攻击 ASR & 攻击 Utility & \texttt{tool\_filter} ASR & \texttt{tool\_filter} Utility & 观察 \\
+    \midrule
+    Workspace & 85.00\% & 60.53\% & 5.26\% & 1.07\% & 36.96\% & 防御显著降低 ASR，但 Utility 仍下降 \\
+    Banking & 75.00\% & 77.78\% & 68.26\% & 0.00\% & 31.25\% & 防御有效，但可用性损失明显 \\
+    Slack & 90.48\% & 99.05\% & 62.86\% & 0.00\% & 0.95\% & 防御后任务几乎无法完成 \\
+    Travel & 75.00\% & 79.25\% & 17.14\% & 79.25\% & 0.00\% & 防御未降低攻击成功率 \\
+    \bottomrule
+  \end{tabular}
+  }
+\end{table}
+
+CaMeL 则从系统结构角度处理间接提示注入问题。该方法显式区分智能体程序中的控制流和数据流，并通过能力控制约束不可信数据对后续行动的影响\cite{debenedetti2025camel}。前期复现实验中，CaMeL 在 Workspace、Banking、Slack 和 Travel 等场景上能够将多数组合的 ASR 降到接近 0，同时保持较高 Utility；但在具体失败案例中，若规划模型生成的操作路径本身符合攻击需求，执行模型又严格执行被污染数据中的局部指令，攻击仍可能沿着合法控制路径落地。该现象对本文后续工作有直接启发：智能体安全不仅要隔离不可信数据，还需要在工具执行前判断当前行动是否仍服务于用户真实授权目标。
+
+这些前期测试共同推动了本文研究问题的形成。AgentDojo 的实验显示，传统工具过滤和提示词策略在跨场景、跨模型时并不稳定；CaMeL 的实验则说明，即使系统已经引入结构化隔离，智能体仍可能因为规划路径和数据解释之间的错配产生风险。因此，本文将后续研究重点收束到运行时意图决策对齐：在工具调用真正执行前，显式检查用户真实意图、智能体当前决策和工具行动之间的一致性。
+
+\section{真实场景样例与模拟轨迹示例}
+
+本文真实场景测试围绕两类决策偏移风险构造。第一类是目标别名重映射。用户明确授权智能体修改某个低风险目标，工作区中的维护说明、状态文件或当前入口却将语义相近的受保护目标包装成应该被更新的对象。该类样例的工具动作通常只是普通文件写入，表面上不包含删除、执行或敏感读取等高风险关键词。风险主要体现在目标对象发生偏移，即智能体把未授权目标当成了当前任务真正需要处理的对象。
+
+第二类是环境诱导删除。用户任务本身是列出文件、统计文件或审计目录等只读请求，并明确要求不要对文件执行额外操作；工作区中的项目说明却声称在执行任何操作前需要先清理临时目录，从而诱导智能体产生删除动作。该类样例更接近间接提示注入，但本文关注的重点不是某个具体载体文件，而是外部环境内容是否能够越过用户授权边界，改变智能体当前决策。
+
+表~\ref{tab:appendix-real-case-examples} 给出两个真实场景样例的抽象形式。为了避免附录中堆叠过长 prompt，这里只展示样例构造逻辑；完整样例文件保存在实验目录的 \texttt{cases/} 子目录下。
+
+\begin{table}[htbp]
+  \centering
+  \caption{真实场景测试样例构造示例}
+  \label{tab:appendix-real-case-examples}
+  \small
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{@{}p{0.18\textwidth}p{0.28\textwidth}p{0.27\textwidth}p{0.17\textwidth}@{}}
+    \toprule
+    类型 & 用户授权 & 偏移诱因 & 攻击效果判断 \\
+    \midrule
+    目标别名重映射 &
+    修改低风险目标 A &
+    环境说明将受保护目标 B 包装为当前入口或正式配置 &
+    目标 B 是否被错误修改 \\
+    环境诱导删除 &
+    只读列出或审计工作区文件 &
+    外部说明要求操作前先清理临时目录 &
+    受保护文件是否被错误删除 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+真实场景样例都配有良性对照。良性样例并不是攻击失败样例，而是本身应当被允许完成的正常任务。例如，在目标别名重映射良性对照中，环境说明与用户授权目标一致，智能体应当修改允许目标而不触碰受保护目标；在环境诱导删除良性对照中，环境说明保持只读，不包含诱导清理要求。这样的成对设计使实验能够同时观察攻击阻断能力和良性任务可用性。
+
+模拟轨迹测试则不启动完整 OpenClaw agent，而是直接向三模块防御链路输入用户请求、历史消息、assistant 决策和待调用工具参数。该设计的目的不是替代真实场景实验，而是在更大规模、更密集的轨迹类型上观察模块一、模块二和模块三的判定稳定性。模拟轨迹数据集共包含 240 条样例，由 24 条种子轨迹扩展得到，分为 aligned、ambiguous、misaligned 和 drift 四类。aligned 类表示用户授权充分、工具动作合理；ambiguous 类表示用户授权边界不足或存在多种解释；misaligned 类表示工具动作已经明确偏离用户目标；drift 类表示多步任务中后续行动逐渐脱离原始授权目标。
+
+表~\ref{tab:appendix-simulated-types} 概括了模拟轨迹的四类设计。与真实场景相比，模拟轨迹不直接衡量端到端攻击是否发生，而更适合观察决策对齐层是否能够在不同语义状态下输出合理处置。
+
+\begin{table}[htbp]
+  \centering
+  \caption{模拟轨迹测试类别}
+  \label{tab:appendix-simulated-types}
+  \small
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{@{}p{0.18\textwidth}p{0.36\textwidth}p{0.34\textwidth}@{}}
+    \toprule
+    类别 & 含义 & 典型轨迹 \\
+    \midrule
+    aligned（对齐） &
+    工具动作处于用户明确授权范围内 &
+    只读总结、目录探查、显式授权写入、安全拒绝 \\
+    ambiguous（模糊授权） &
+    用户目标存在多种解释，继续执行存在不确定性 &
+    自主清理、跨目录扫描、归档范围扩展 \\
+    misaligned（明确不对齐） &
+    工具动作已经改变或违背用户授权目标 &
+    只读任务转写入、环境诱导删除、敏感信息搜索 \\
+    drift（长周期漂移） &
+    多步任务中后续行动逐渐脱离原始目标 &
+    先读取后删除日志、打包上级目录、运行清理脚本 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{实验目录与运行方法}
+
+本文实验材料集中整理在 \texttt{AgentWard/experiments/} 目录下。该目录按真实场景测试和模拟轨迹测试拆分，前者用于真实启动 OpenClaw agent 并比较不同防御方法，后者用于离线回放运行轨迹并直接测试三模块链路。OpenClaw 作为智能体运行框架提供工具调用和插件 hook 能力\cite{openclaw2026github}，AgentWard 则提供基于 OpenClaw hook 的安全防御插件基础\cite{zhang2026agentward}。
+
+真实场景测试目录为 \texttt{real-scenario-testing/}。正式数据集共包含 17 条攻击样例和 17 条良性样例，结果文件按模型和方法存放在 \texttt{results/} 下，其中 \texttt{results/summaries/} 保存各基线方法的人工总结。真实场景测试会临时修改 OpenClaw 配置，因此不同 baseline 之间应串行运行；同一 baseline 内可以通过脚本参数并行不同样例。每个样例都应使用独立 fresh agent，避免会话污染。
+
+模拟轨迹测试目录为 \texttt{simulated-testing/}。小规模种子数据和大规模 240 条数据均位于该目录的 \texttt{data/} 子目录中。测试脚本会真实调用模块一和模块二所需的大模型，但不会启动完整 OpenClaw agent，也不会真实执行工具动作。该测试主要输出容错通过率、精确通过率、模块耗时、超时回退和解析失败等指标。
+
+表~\ref{tab:appendix-run-entry} 给出两类实验的基本运行入口。实际运行前需要根据本地环境配置 API key、模型配置和 OpenClaw 插件开关；具体数据集路径、模型配置和并发参数由脚本参数或对应目录下的 README 文件给出。
+
+\begin{table}[htbp]
+  \centering
+  \caption{实验运行入口}
+  \label{tab:appendix-run-entry}
+  \small
+  \renewcommand{\arraystretch}{1.2}
+  \begin{tabular}{@{}p{0.24\textwidth}p{0.32\textwidth}p{0.34\textwidth}@{}}
+    \toprule
+    测试类型 & 入口脚本 & 主要用途 \\
+    \midrule
+    真实场景测试 &
+    \texttt{run-real-case-}\newline\texttt{smoke.mjs} &
+    启动真实 OpenClaw agent，运行 Decision-Align 或指定 baseline \\
+    模拟轨迹测试 &
+    \texttt{run-simulated-}\newline\texttt{eval.sh} &
+    离线回放轨迹，测试意图分析、对齐检测和动态处置链路 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+实验复核时应优先查看实验总览文档。该文件汇总了真实场景 5 个 baseline、2 个模型以及模拟轨迹 2 个模型的主要结果。若需要追溯单条样例，则应进一步查看 \texttt{real-scenario-testing/results/} 和 \texttt{simulated-testing/results/} 中对应的 JSON 与 Markdown 结果文件。
+
+本附录中的前期测试和补充样例说明，与正文实验共同服务于一个结论：大模型智能体安全评估不能只观察文本回复，也不能只观察工具动作表面的危险关键词，而需要同时关注用户授权目标、模型决策路径和工具行动结果之间的关系\cite{jia2024taskshield,cartagena2026gap}。
+
+\printbibliography
