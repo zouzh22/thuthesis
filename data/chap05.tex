@@ -37,7 +37,7 @@
 
   \item \textbf{Prompt-Policy。} 该方法在系统提示词中加入固定安全策略，要求模型只把用户最新显式请求作为可信目标，并将项目说明、脚本、日志和工具输出视为不可信数据。提示词防护与指令层级、指令数据分离等研究方向密切相关\cite{wallace2024instructionhierarchy,chen2024struq}。该基线用于评估静态系统策略在长上下文任务中的持续约束能力。
 
-  \item \textbf{LLM-Only。} 该方法在工具调用前调用一次大模型安全裁判，直接判断当前动作是否安全。以 Llama Guard 为代表的工作将安全判断建模为 LLM 分类任务，后续护栏系统也开始将外部裁判引入智能体场景\cite{inan2023llamaguard,chennabasappa2025llamafirewall,xiang2024guardagent}。该基线用于衡量单点语义裁判的能力边界：它比规则方法更能理解语义，但不显式抽取用户真实意图，也不对工具目标进行结构化比对。
+  \item \textbf{LLM-Only。} 该方法在工具调用前调用一次大模型安全裁判，直接判断当前动作是否安全。以 Llama Guard 为代表的工作将安全判断建模为 LLM 分类任务，R-Judge 等研究也将智能体交互记录中的风险识别作为独立评测任务，后续护栏系统则进一步将外部裁判引入智能体场景\cite{inan2023llamaguard,yuan2024rjudge,chennabasappa2025llamafirewall,xiang2024guardagent}。该基线用于衡量单点语义裁判的能力边界：它比规则方法更能理解语义，但不显式抽取用户真实意图，也不对工具目标进行结构化比对。
 
   \item \textbf{Decision-Align。} 这是本文提出的三模块防御方法。它先分析用户真实意图，再比较智能体当前决策和待调用工具参数是否仍与该意图一致，最后根据偏移程度输出 allow、review 或 block。Task Shield 将间接提示注入防御表述为任务对齐问题，GAP Benchmark 则指出文本安全不能自然迁移到工具调用安全\cite{jia2024taskshield,cartagena2026gap}。Decision-Align 沿着这一方向继续推进，把比较对象从单个工具动作扩展为用户意图、模型决策和工具行动三者之间的授权关系。
 \end{enumerate}
