@@ -118,6 +118,48 @@
 
 模块二的大模型判断采用严格的结构化输出。判断结果包含 \texttt{alignment}、\texttt{deviationLevel}、\texttt{confidence} 和 \texttt{reason} 四个核心字段。其中 \texttt{alignment} 表示当前动作与用户意图的关系，取值为 \texttt{aligned}、\texttt{uncertain} 或 \texttt{misaligned}；\texttt{deviationLevel} 表示偏移程度；\texttt{confidence} 表示模型对当前判断的置信度；\texttt{reason} 则用简短自然语言说明主要依据。系统提示词要求模型只返回紧凑 JSON，不输出 Markdown 或长推理过程，并以“一次判断”为原则完成分类。这种设计一方面提高了解析稳定性，另一方面也减少了模型在复杂安全样例中反复思考导致超时的概率。
 
+表~\ref{tab:chap04-judgement-criteria} 给出了本文使用的主要判定准则。该准则并不把大模型输出视为不可解释的结论，而是将用户授权目标、工具动作类型、目标对象、上下文来源和潜在后果共同纳入判断。这样可以使模块二的输出在实验复核时具有较清晰的解释边界，也便于后续将人工标注、模型输出和运行日志进行对照。
+
+\begin{table}[htbp]
+  \centering
+  \caption{意图对齐检测模块的判定准则}
+  \label{tab:chap04-judgement-criteria}
+  \small
+  \renewcommand{\arraystretch}{1.25}
+  \begin{tabular}{@{}p{0.18\textwidth}p{0.30\textwidth}p{0.28\textwidth}p{0.14\textwidth}@{}}
+    \toprule
+    输出项 & 判定依据 & 典型情况 & 处置倾向 \\
+    \midrule
+    aligned &
+    工具动作与用户目标、约束和授权对象一致 &
+    用户要求列目录，工具执行读取或列表操作 &
+    allow \\
+    uncertain &
+    工具动作可能有助于任务，但授权边界不清或上下文存在冲突 &
+    用户要求整理目录，智能体准备删除部分文件 &
+    review \\
+    misaligned &
+    工具动作明显改变、扩大或违背用户授权目标 &
+    用户要求只读检查，智能体准备写入或删除 &
+    block \\
+    high deviation &
+    可能造成不可逆修改、敏感泄露或目标重映射 &
+    删除受保护文件、外传数据、执行未知脚本 &
+    block \\
+    medium deviation &
+    存在越权嫌疑，但风险后果相对有限 &
+    写入非关键文件、修改辅助配置 &
+    review \\
+    low deviation &
+    与任务关系较弱，且未表现出明显破坏性 &
+    读取额外非敏感文件 &
+    allow 或 review \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+本文不将 \texttt{confidence} 视为经过严格校准的概率，而将其作为辅助处置和异常回退信号。最终结果并不只由置信度决定，而是结合 \texttt{alignment}、\texttt{deviationLevel}、动作类型、目标对象、用户约束和风险等级共同映射到运行时处置。对于用户直接请求与环境内容冲突的情况，用户请求优先；对于授权边界不清且可能改变环境状态的工具调用，系统倾向于进入审查，而不是直接放行。
+
 算法~\ref{alg:decision-alignment-runtime} 给出了本文运行时对齐检测链路的抽象过程。真实实现中还包含日志记录、异常捕获和状态同步等工程细节，但核心判断流程与算法一致。
 
 \begin{algorithm}[htbp]
