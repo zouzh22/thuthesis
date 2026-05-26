@@ -297,3 +297,5 @@ TSWLatexianTemp*
 yarn.lock
 
 *.luabridge.lua
+
+main.pdf
