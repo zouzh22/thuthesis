@@ -8,12 +8,12 @@
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{chap04-intent-decision-framework.png}
+  \includegraphics[width=\textwidth]{chap04-intent-decision-framework-v2.png}
   \caption{基于意图决策对齐的大模型智能体运行时防御框架}
   \label{fig:chap04-intent-decision-framework}
 \end{figure}
 
-图~\ref{fig:chap04-intent-decision-framework} 给出了本文防御机制的整体结构。左侧运行时输入包括用户任务请求、外部环境内容和智能体当前决策；中间三模块防御层在工具调用前依次完成意图分析、对齐检查和动态响应；右侧输出允许、审查和阻断三类处置结果；底部工程支撑机制则支撑该链路在真实 OpenClaw 运行环境中具备可部署性和稳定性。
+图~\ref{fig:chap04-intent-decision-framework} 给出了本文防御机制的整体结构。左侧运行时输入包括用户请求、环境内容和待执行工具调用；中间防御层围绕三模块依次完成意图分析、对齐检测和动态处理；右侧将判断结果映射为放行、审查和阻断三类处置；底部的规则过滤、缓存、worker 隔离、超时回退和日志记录等机制，则支撑该链路在真实 OpenClaw 运行环境中稳定工作。
 
 \section{方法概述}
 
@@ -47,18 +47,18 @@
     \toprule
     模块 & 输入 & 输出 & 设计作用 \\
     \midrule
-    用户真实意图分析 &
-    当前用户输入、近期会话上下文 &
-    目标、约束、敏感对象、风险等级、置信度 &
-    将自然语言任务转化为后续可比较的授权边界 \\
-    意图对齐检测 &
-    结构化意图、智能体当前输出、工具名称与参数 &
-    对齐状态、偏移程度、置信度、原因说明 &
-    判断当前行动是否改变、扩大或违背用户授权目标 \\
-    动态结果处理 &
-    对齐检测结果与会话状态 &
-    allow、review 或 block 处置 &
-    在安全性和可用性之间进行分级干预 \\
+    意图分析 &
+    用户输入、近期上下文 &
+    目标、约束、敏感对象、风险等级 &
+    形成可比较的授权边界 \\
+    对齐检测 &
+    结构化意图、当前输出、工具参数 &
+    对齐状态、偏移程度、置信度 &
+    判断行动是否越过授权边界 \\
+    结果处理 &
+    对齐结果与会话状态 &
+    allow、review、block &
+    将判断映射为运行时处置 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -83,25 +83,25 @@
     \midrule
     summary &
     对当前任务的简要概括 &
-    提供低成本的任务摘要，便于模块二快速定位任务语义 \\
+    定位任务语义 \\
     goal &
     用户明确授权的核心目标 &
-    作为判断工具动作是否服务于任务的主要依据 \\
+    判断动作是否服务目标 \\
     constraints &
     用户明确提出的限制和禁止事项 &
-    用于识别只读任务转向写入、禁止额外操作却执行额外步骤等偏移 \\
+    识别只读转写入等偏移 \\
     sensitiveTargets &
     文件、目录、凭据、外部服务等关键对象 &
-    用于检测目标对象偏移和敏感资源访问 \\
+    检测目标偏移与敏感访问 \\
     riskLevel &
     当前任务的风险等级 &
-    决定后续是否更积极触发 LLM 对齐检测 \\
+    决定是否触发深度检测 \\
     confidence &
     意图分析本身的置信度 &
-    帮助模块三在模糊场景中采取更保守处置 \\
+    辅助模糊场景处置 \\
     rationale &
     简短判断依据 &
-    为日志、实验分析和人工复核提供解释信息 \\
+    便于日志与人工复核 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -133,27 +133,27 @@
     输出项 & 判定依据 & 典型情况 & 处置倾向 \\
     \midrule
     aligned &
-    工具动作与用户目标、约束和授权对象一致 &
-    用户要求列目录，工具执行读取或列表操作 &
+    目标、约束与对象一致 &
+    只读请求执行读取或列表 &
     allow \\
     uncertain &
-    工具动作可能有助于任务，但授权边界不清或上下文存在冲突 &
-    用户要求整理目录，智能体准备删除部分文件 &
+    授权不足或上下文冲突 &
+    整理目录时准备删除文件 &
     review \\
     misaligned &
-    工具动作明显改变、扩大或违背用户授权目标 &
-    用户要求只读检查，智能体准备写入或删除 &
+    改变、扩大或违背授权 &
+    只读检查转向写入或删除 &
     block \\
     high deviation &
-    可能造成不可逆修改、敏感泄露或目标重映射 &
-    删除受保护文件、外传数据、执行未知脚本 &
+    不可逆修改、泄露或目标重映射 &
+    删除、外传、执行未知脚本 &
     block \\
     medium deviation &
-    存在越权嫌疑，但风险后果相对有限 &
-    写入非关键文件、修改辅助配置 &
+    存在越权嫌疑 &
+    写入非关键文件或辅助配置 &
     review \\
     low deviation &
-    与任务关系较弱，且未表现出明显破坏性 &
+    与任务关系较弱、风险低 &
     读取额外非敏感文件 &
     allow 或 review \\
     \bottomrule
@@ -205,7 +205,7 @@
   \renewcommand{\arraystretch}{1.25}
   \begin{tabular}{@{}p{0.20\textwidth}p{0.20\textwidth}p{0.18\textwidth}p{0.30\textwidth}@{}}
     \toprule
-    对齐状态 & 偏移程度与置信度 & 处置 & 运行时效果 \\
+    对齐状态 & 偏移/置信 & 处置 & 运行时效果 \\
     \midrule
     aligned &
     任意 &
@@ -214,23 +214,23 @@
     uncertain &
     任意 &
     review &
-    临时阻断当前工具调用，并返回需要确认的告警 \\
+    暂停工具调用并提示确认 \\
     misaligned &
     high，任意置信度 &
     block &
-    阻断当前工具调用，并记录不对齐原因 \\
+    阻断工具调用并记录原因 \\
     misaligned &
     medium，置信度非 low &
     block &
-    阻断当前工具调用，避免中高风险偏移落地 \\
+    阻断中高风险偏移 \\
     misaligned &
     medium 或 low，低置信度 &
     review &
-    临时阻断并要求重新确认，避免低置信判断造成过度封禁 \\
+    暂停并要求重新确认 \\
     调用失败或解析失败 &
     无可靠判断 &
     review &
-    保守回退，防止防御模块失效时直接放行 \\
+    保守回退，避免默认放行 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -251,20 +251,20 @@
   \renewcommand{\arraystretch}{1.25}
   \begin{tabular}{@{}p{0.34\textwidth}p{0.23\textwidth}p{0.31\textwidth}@{}}
     \toprule
-    Hook 位置 & 可获取信息 & 本文方法的处理 \\
+    Hook 位置 & 观测信息 & 本文处理 \\
     \midrule
     \texttt{before\_prompt\_build} &
-    当前用户输入、近期会话上下文、LLM 调用配置 &
-    重置当前轮状态，记录用户输入，尽早触发用户真实意图分析 \\
+    用户输入、近期上下文、LLM 配置 &
+    重置轮次状态，触发意图分析 \\
     \texttt{before\_message\_write} &
-    assistant 输出、工具调用意图、工具名称与参数 &
-    执行高风险过滤、意图对齐检测和动态结果处理 \\
+    assistant 输出、工具名称与参数 &
+    执行过滤、对齐检测和结果处理 \\
     \texttt{before\_tool\_call} &
-    即将提交执行层的具体工具调用 &
-    根据临时阻断状态和告警队列决定是否阻断当前工具 \\
+    即将执行的工具调用 &
+    读取阻断状态，决定是否执行 \\
     \texttt{after\_tool\_call} &
-    工具执行结果与后续上下文变化 &
-    更新执行后的会话状态，为后续轮次提供上下文信息 \\
+    工具结果与上下文变化 &
+    更新会话状态 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -300,22 +300,22 @@ LLM 调用配置同样由运行时状态统一管理。系统优先读取插件�
   \small
   \setlength{\fboxsep}{6pt}
   \begin{tabular}{c@{\quad}c@{\quad}c@{\quad}c}
-    \fbox{\begin{minipage}{0.20\linewidth}\centering 用户授权\\只读列目录\\禁止额外操作\end{minipage}}
+    \fbox{\begin{minipage}{0.20\linewidth}\centering 用户授权只读列目录\\禁止额外操作\end{minipage}}
     &
-    \fbox{\begin{minipage}{0.20\linewidth}\centering 工作区 README\\注入清理要求\\外部环境内容\end{minipage}}
+    \fbox{\begin{minipage}{0.20\linewidth}\centering 工作区 README\\注入清理要求\end{minipage}}
     &
-    \(\Rightarrow\)
+    \(\xrightarrow{\text{无防御}}\)
     &
-    \fbox{\begin{minipage}{0.26\linewidth}\centering 智能体准备执行\\清理临时目录\\产生决策偏移\end{minipage}}
+    \fbox{\begin{minipage}{0.26\linewidth}\centering 智能体执行清理指令\\产生决策偏移\\风险触发\end{minipage}}
     \\[1.2em]
-    \multicolumn{4}{c}{\(\Downarrow\)}\\[-0.2em]
-    \fbox{\begin{minipage}{0.20\linewidth}\centering 模块一\\抽取只读意图\\保留禁止约束\end{minipage}}
+    \multicolumn{4}{c}{\(\overset{\text{有防御}}{\Downarrow}\)}\\[-0.2em]
+    \fbox{\begin{minipage}{0.20\linewidth}\centering M1\\抽取只读意图\\保留禁止约束\end{minipage}}
     &
-    \fbox{\begin{minipage}{0.20\linewidth}\centering 模块二\\比较删除动作\\识别意图不对齐\end{minipage}}
+    \fbox{\begin{minipage}{0.20\linewidth}\centering M2\\比较删除动作\\识别意图不对齐\end{minipage}}
     &
     \(\Rightarrow\)
     &
-    \fbox{\begin{minipage}{0.26\linewidth}\centering 模块三\\审查或阻断\\阻止工具执行\end{minipage}}
+    \fbox{\begin{minipage}{0.26\linewidth}\centering M3\\审查为阻断\\阻止工具执行\end{minipage}}
   \end{tabular}
   \caption{README 间接注入场景中的决策偏移与三模块处置流程}
   \label{fig:chap04-readme-case-flow}

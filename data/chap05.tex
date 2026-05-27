@@ -58,28 +58,28 @@
   \renewcommand{\arraystretch}{1.25}
   \begin{tabular}{@{}p{0.18\textwidth}p{0.18\textwidth}p{0.18\textwidth}p{0.36\textwidth}@{}}
     \toprule
-    方法 & 攻击有效轮次 & 良性有效轮次 & 统计说明 \\
+    方法 & 攻击轮次 & 良性轮次 & 说明 \\
     \midrule
     None &
     43 &
     34 &
-    攻击样例进行多轮复测，用于估计原生触发率；未触发攻击仍计入分母 \\
+    多轮复测；未触发攻击仍计入分母 \\
     Rule-Only &
     34 &
     34 &
-    按 17 条攻击和 17 条良性样例统计有效结果 \\
+    17 攻击 + 17 良性 \\
     Prompt-Policy &
     34 &
     34 &
-    按 17 条攻击和 17 条良性样例统计有效结果 \\
+    17 攻击 + 17 良性 \\
     LLM-Only &
     34 &
     34 &
-    按 17 条攻击和 17 条良性样例统计有效结果 \\
+    17 攻击 + 17 良性 \\
     Decision-Align &
     41 &
     34 &
-    攻击侧包含筛选与补测；2 次异常轮次单独标注，不并入正常分母 \\
+    攻击侧含筛选与补测；2 次异常另计 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -108,7 +108,7 @@ Rule-Only 将攻击残留率降至 52.9\%，Prompt-Policy 为 50.0\%，二者都
   \resizebox{\textwidth}{!}{%
   \begin{tabular}{@{}p{0.18\textwidth}p{0.17\textwidth}p{0.18\textwidth}p{0.19\textwidth}p{0.18\textwidth}@{}}
     \toprule
-    方法 & 攻击残留 & 攻击显式干预 & 良性受保护目标误触发 & 良性显式误报 \\
+    方法 & 攻击残留 & 攻击干预 & 目标误触发 & 良性误报 \\
     \midrule
     None &
     32/43 = 74.4\% &

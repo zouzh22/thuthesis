@@ -56,20 +56,20 @@ OpenClaw 是本文实验和系统实现所依托的大模型智能体运行框�
     类型 & 含义 & 示例 \\
     \midrule
     动作类型偏移 &
-    智能体采取的动作类型超出用户授权 &
-    用户要求列出文件，智能体执行删除或写入 \\
+    动作类型超出授权 &
+    只读请求转向删除或写入 \\
     目标对象偏移 &
-    工具动作指向了非用户授权对象 &
-    用户要求修改文件 A，智能体修改文件 B \\
+    工具指向非授权对象 &
+    要求修改 A，实际修改 B \\
     权限范围偏移 &
-    智能体将局部任务扩大为全局操作 &
-    用户要求检查单个目录，智能体清理整个工作区 \\
+    局部任务扩大为全局操作 &
+    检查单个目录却清理工作区 \\
     来源信任偏移 &
-    智能体把不可信环境内容当作用户授权 &
-    README 或脚本注释诱导智能体执行额外步骤 \\
+    不可信内容被当作授权 &
+    README 或注释诱导额外步骤 \\
     长周期目标漂移 &
-    多步任务中后续行动逐渐偏离原始目标 &
-    早期中间结论被当作新任务目标持续推进 \\
+    后续行动偏离原始目标 &
+    中间结论被当作新目标推进 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -126,11 +126,11 @@ OpenClaw 是本文实验和系统实现所依托的大模型智能体运行框�
   \small
   \setlength{\fboxsep}{6pt}
   \begin{tabular}{c@{\quad}c@{\quad}c@{\quad}c@{\quad}c}
-    \fbox{\begin{minipage}{0.16\linewidth}\centering 用户输入\\与近期上下文\end{minipage}}
+    \fbox{\begin{minipage}{0.16\linewidth}\centering 用户输入\\、上下文\end{minipage}}
     &
     \(\rightarrow\)
     &
-    \fbox{\begin{minipage}{0.20\linewidth}\centering 模块一\\用户真实意图分析\end{minipage}}
+    \fbox{\begin{minipage}{0.20\linewidth}\centering 模块一\\真实意图分析\end{minipage}}
     &
     \(\rightarrow\)
     &
@@ -139,11 +139,11 @@ OpenClaw 是本文实验和系统实现所依托的大模型智能体运行框�
     \multicolumn{5}{c}{
       \fbox{\begin{minipage}{0.78\linewidth}
         \centering
-        智能体当前输出与待调用工具参数
+        智能体输出、待调用工具参数
         \quad\(\rightarrow\quad\)
         模块二：意图对齐检测
         \quad\(\rightarrow\quad\)
-        对齐 / 不确定 / 不对齐
+        对齐\ /\ 不确定 /\ 不对齐
       \end{minipage}}
     }
     \\[1.2em]
@@ -154,7 +154,7 @@ OpenClaw 是本文实验和系统实现所依托的大模型智能体运行框�
         \quad\(\rightarrow\quad\)
         allow / review / block
         \quad\(\rightarrow\quad\)
-        OpenClaw 执行或阻断
+        执行\ 或\ 阻断
       \end{minipage}}
     }
   \end{tabular}
